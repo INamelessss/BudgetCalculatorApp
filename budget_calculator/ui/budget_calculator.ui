@@ -1,0 +1,78 @@
+from PyQt5.QtWidgets import QMainWindow, QWidget, QListWidget, QAction, QMessageBox
+
+
+class BudgetCalculatorWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Calculadora de presupuesto")
+
+        self._expense_list = ExpenseList(self)
+        self.setCentralWidget(self._expense_list)
+
+        self._add_menus()
+
+        self._initialize()
+
+    def _add_menus(self):
+
+        file_menu = self.menuBar().addMenu("Archivo")
+        file_menu.addAction("Nuevo", self._on_new_action)
+        file_menu.addAction("Guardar", self._on_save_action)
+        file_menu.addAction("Cerrar", self._on_close_action)
+
+        edit_menu = self.menuBar().addMenu("Edición")
+        edit_menu.addAction("Editar gasto", self._on_edit_expense_action)
+        edit_menu.addAction("Eliminar gasto", self._on_delete_expense_action)
+
+        view_menu = self.menuBar().addMenu("Ver")
+        view_menu.addAction("Lista de gastos", self._on_expense_list_action)
+        view_menu.addAction("Filtro de gastos", self._on_filter_expenses_action)
+        view_menu.addAction("Gráfico de gastos", self._on_graph_expenses_action)
+
+    def _initialize(self):
+        self._expense_list.load()
+
+        self._expense_list.setFocus()
+
+    def _on_new_action(self):
+        expense_dialog = ExpenseDialog(self)
+        if expense_dialog.exec_():
+            expense = Expense(
+                expense_dialog.amount(), expense_dialog.category(), expense_dialog.date(),
+                self._expense_list.current_user()
+            )
+
+            self._expense_list.add_expense(expense)
+
+            self._expense_list.update()
+
+    def _on_save_action(self):
+
+        self._expense_list.save()
+
+    def _on_close_action(self):
+
+        if QMessageBox.question(
+            self, "Cerrar", "¿Desea guardar los datos antes de cerrar?", QMessageBox.Yes | QMessageBox.No
+        ) == QMessageBox.Yes:
+            self._expense_list.save()
+
+        # Cierra la aplicación.
+        self.close()
+
+
+class ExpenseList(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self._expenses = []
+        self._current_user = None
+
+    def load(self):
+        self._expenses = []
+        for expense in self._model.expenses():
+            if expense.user == self._current_user:
+                self._expenses.append(expense)
+
+        self.update()
